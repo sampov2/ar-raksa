@@ -4,43 +4,14 @@ import * as Cesium from 'cesium';
 
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwODU5OWYyYy1jZmY3LTQxMmQtODc0OC02MTJlZThkYWJiYjQiLCJpZCI6MTg1NTIzLCJpYXQiOjE3MDMwNzQ3MTh9.eXHMDBi4AGAHJInMfIGt3AL22k1fQCBXovfhHx4-TQg';
 
-/*
-const m_mono: any = new Cesium.UrlTemplateImageryProvider({
-    url: 'https://tile.mierune.co.jp/mierune_mono/{z}/{x}/{y}.png',
-    credit: new Cesium.Credit(
-        "Maptiles by <a href='http://mierune.co.jp' target='_blank'>MIERUNE</a>, under CC BY. Data by <a href='http://osm.org/copyright' target='_blank'>OpenStreetMap</a> contributors, under ODbL."
-    ),
-});
-*/
-
 const viewer = new Cesium.Viewer('map', {
     baseLayerPicker: false,
     geocoder: false,
     homeButton: false,
     timeline: false,
     animation: false,
-    //baseLayer: Cesium.ImageryLayer.fromProviderAsync(m_mono,{}),
     terrain: Cesium.Terrain.fromWorldTerrain(),
-    
 });
-
-/*
-const wmsProvider = new Cesium.WebMapServiceImageryProvider({
-    url: 'https://kartta.hel.fi/ws/geoserver/avoindata/wms',
-    //layers: 'avoindata:Kiinteisto_alue' // <- getFeatureInfo
-    //layers: 'avoindata:Kiinteistokartta'
-    layers: 'avoindata:Aluevuokraus_alue',
-    parameters: {
-        transparent: 'true',
-        format: 'image/png'
-    }
-});
-
-
-const wmsLayer = new Cesium.ImageryLayer(wmsProvider, {});
-
-viewer.imageryLayers.add(wmsLayer);
-*/
 
 const wfsUrl = new URL('https://kartta.hel.fi/ws/geoserver/avoindata/wfs');
 wfsUrl.searchParams.append('SERVICE', 'WFS');
@@ -65,8 +36,6 @@ Cesium.Cesium3DTileset.fromIonAssetId(2275207, {}).then((tileset) => {
     viewer.scene.primitives.add(tileset);
 });
 
-  
-
 
 Cesium.GeoJsonDataSource.load(wfsUrl.toString(), {
     stroke: Cesium.Color.HOTPINK,
@@ -84,23 +53,192 @@ Cesium.GeoJsonDataSource.load(wfsUrl.toString(), {
         
     });
     viewer.dataSources.add(ds);
-    //console.log('ds', ds)
   })
-/*
-viewer.dataSources.add(Cesium.GeoJsonDataSource.load(wfsUrl.toString(), {
-    stroke: Cesium.Color.HOTPINK,
-    fill: Cesium.Color.PINK,
-    strokeWidth: 3,
-    markerSymbol: '?'
-  }));
-  */
+
+function flyTo(lat, lon, altitude) {
+    viewer.camera.flyTo({
+        //destination: Cesium.Cartesian3.fromDegrees(24.9375, 60.03, 10000.0),
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
+        orientation: {
+            pitch: -0.6,
+            roll: 0.0,
+        },
+    });
+}
+
+navigator.geolocation.watchPosition((pos) => {
+    flyTo(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 20.0)
+    console.log(pos.coords)
+}, (error) => console.error(error), {
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0
+})
 
 
-viewer.camera.flyTo({
-    //destination: Cesium.Cartesian3.fromDegrees(24.9375, 60.03, 10000.0),
-    destination: Cesium.Cartesian3.fromDegrees(24.9375, 60.15, 1000.0),
-    orientation: {
-        pitch: -0.6,
-        roll: 0.0,
-    },
-});
+var currentScreenOrientation = window.orientation || 0; // active default
+
+// THIS ALLOWS YOU TO USE THE PHONE TO CONTROL THE CESIUM CAMERA VIEW
+if (window.DeviceOrientationEvent) {
+	window.addEventListener('deviceorientation', onDeviceOrientationChanged, false);
+}
+
+	
+/**
+* Rotation Matrix functions
+* Convert Yaw/alpha/Z, Pitch/beta/X, Roll/gamma/Y to and from rotation matrix, apply transformations
+*
+* @author Rich Tibbett <https://dev.opera.com/articles/w3c-device-orientation-usage/>, Nghia Ho <http://nghiaho.com/?page_id=846>, Derek Wee
+* @copyright 
+* @version 0.1
+* @license 
+*/
+
+window.addEventListener('orientationchange', function() {
+	currentScreenOrientation = window.orientation;
+}, false);
+
+var degtorad = Math.PI / 180; // Degree-to-Radian conversion
+
+//R.1: Converting deviceorientation angles to a Rotation Matrix representation
+function getBaseRotationMatrix( alpha, beta, gamma ) {
+	var _x = beta  ? beta  * degtorad : 0; // beta value
+	var _y = gamma ? gamma * degtorad : 0; // gamma value
+	var _z = alpha ? alpha * degtorad : 0; // alpha value
+
+	var cX = Math.cos( _x );
+	var cY = Math.cos( _y );
+	var cZ = Math.cos( _z );
+	var sX = Math.sin( _x );
+	var sY = Math.sin( _y );
+	var sZ = Math.sin( _z );
+
+	//
+	// ZXY-ordered rotation matrix construction.
+	//
+
+	var m11 = cZ * cY - sZ * sX * sY;
+	var m12 = - cX * sZ;
+	var m13 = cY * sZ * sX + cZ * sY;
+
+	var m21 = cY * sZ + cZ * sX * sY;
+	var m22 = cZ * cX;
+	var m23 = sZ * sY - cZ * cY * sX;
+
+	var m31 = - cX * sY;
+	var m32 = sX;
+	var m33 = cX * cY;
+
+	return [
+	m11,    m12,    m13,
+	m21,    m22,    m23,
+	m31,    m32,    m33
+	];
+}
+
+//R.2: Fixing our rotation matrix frame relative to the current screen orientation
+function getScreenTransformationMatrix( screenOrientation ) {
+	var orientationAngle = screenOrientation ? screenOrientation * degtorad : 0;
+
+	var cA = Math.cos( orientationAngle );
+	var sA = Math.sin( orientationAngle );
+
+	// Construct our screen transformation matrix
+	var r_s = [
+	cA,    -sA,    0,
+	sA,    cA,     0,
+	0,     0,      1
+	];
+
+	return r_s;
+}
+
+//R.3: Fix our rotation matrix frame relative to our application’s world orientation (rotation around x-axis)
+function getWorldTransformationMatrix() {
+	var x = -90 * degtorad;
+
+	var cA = Math.cos( x );
+	var sA = Math.sin( x );
+
+	// Construct our world transformation matrix
+	var r_w = [
+	1,     0,    0,
+	0,     cA,   -sA,
+	0,     sA,   cA
+	];
+
+	return r_w;
+}
+
+
+//R.4: Computing our final rotation matrix representation
+function matrixMultiply( a, b ) {
+	var final = [];
+
+	final[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
+	final[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7];
+	final[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8];
+
+	final[3] = a[3] * b[0] + a[4] * b[3] + a[5] * b[6];
+	final[4] = a[3] * b[1] + a[4] * b[4] + a[5] * b[7];
+	final[5] = a[3] * b[2] + a[4] * b[5] + a[5] * b[8];
+
+	final[6] = a[6] * b[0] + a[7] * b[3] + a[8] * b[6];
+	final[7] = a[6] * b[1] + a[7] * b[4] + a[8] * b[7];
+	final[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
+
+	return final;
+}
+
+//Returns a 3 x 3 rotation matrix as an array
+function computeMatrix(alpha, beta, gamma, currentScreenOrientation) {
+	var rotationMatrix = getBaseRotationMatrix(
+	alpha,
+	beta,
+	gamma
+	); // R
+
+	var screenTransform = getScreenTransformationMatrix( currentScreenOrientation ); // r_s
+
+	var screenAdjustedMatrix = matrixMultiply( rotationMatrix, screenTransform ); // R_s
+
+	var worldTransform = getWorldTransformationMatrix(); // r_w
+
+	var finalMatrix = matrixMultiply( screenAdjustedMatrix, worldTransform ); // R_w
+    
+	return finalMatrix; // [ m11, m12, m13, m21, m22, m23, m31, m32, m33 ]
+}
+
+function getYawPitchRoll(rotationMatrix) {
+	var rm11 = rotationMatrix[0]; var rm12 = rotationMatrix[1]; var rm13 = rotationMatrix[2];
+	var rm21 = rotationMatrix[3]; var rm22 = rotationMatrix[4]; var rm23 = rotationMatrix[5];
+	var rm31 = rotationMatrix[6]; var rm32 = rotationMatrix[7]; var rm33 = rotationMatrix[8];
+	
+	var yaw = Math.atan2(rm21, rm11);
+	var pitch = Math.atan2(rm32, rm33);
+	var roll = Math.atan2(rm31, Math.sqrt(Math.pow(rm32,2) + Math.pow(rm33,2)));
+	
+	return [yaw, pitch, roll]; //[yaw, pitch, roll]
+}
+
+function onDeviceOrientationChanged(eventData) {
+	var beta = eventData.beta;
+	var gamma = eventData.gamma;
+	var alpha = eventData.alpha; 
+	
+	var matrix = computeMatrix(alpha, beta, gamma, currentScreenOrientation);
+	
+	
+	var YawPitchRoll = getYawPitchRoll(matrix);
+	
+	
+	
+	viewer.camera.setView({
+    orientation : {
+       heading : -YawPitchRoll[0],
+        pitch : YawPitchRoll[1],
+		roll: -YawPitchRoll[2]
+    }
+   });
+	
+}
