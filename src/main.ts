@@ -55,7 +55,7 @@ Cesium.GeoJsonDataSource.load(wfsUrl.toString(), {
     viewer.dataSources.add(ds);
   })
 
-function flyTo(lat, lon, altitude) {
+function flyTo(lat : number, lon : number, altitude : number) {
     viewer.camera.flyTo({
         //destination: Cesium.Cartesian3.fromDegrees(24.9375, 60.03, 10000.0),
         destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
@@ -76,7 +76,7 @@ navigator.geolocation.watchPosition((pos) => {
 })
 
 
-var currentScreenOrientation = window.orientation || 0; // active default
+var currentScreenOrientation : number = window.orientation || 0; // active default
 
 // THIS ALLOWS YOU TO USE THE PHONE TO CONTROL THE CESIUM CAMERA VIEW
 if (window.DeviceOrientationEvent) {
@@ -101,7 +101,7 @@ window.addEventListener('orientationchange', function() {
 var degtorad = Math.PI / 180; // Degree-to-Radian conversion
 
 //R.1: Converting deviceorientation angles to a Rotation Matrix representation
-function getBaseRotationMatrix( alpha, beta, gamma ) {
+function getBaseRotationMatrix( alpha : number | null, beta : number | null, gamma : number | null ) {
 	var _x = beta  ? beta  * degtorad : 0; // beta value
 	var _y = gamma ? gamma * degtorad : 0; // gamma value
 	var _z = alpha ? alpha * degtorad : 0; // alpha value
@@ -137,7 +137,7 @@ function getBaseRotationMatrix( alpha, beta, gamma ) {
 }
 
 //R.2: Fixing our rotation matrix frame relative to the current screen orientation
-function getScreenTransformationMatrix( screenOrientation ) {
+function getScreenTransformationMatrix( screenOrientation : number) {
 	var orientationAngle = screenOrientation ? screenOrientation * degtorad : 0;
 
 	var cA = Math.cos( orientationAngle );
@@ -172,7 +172,7 @@ function getWorldTransformationMatrix() {
 
 
 //R.4: Computing our final rotation matrix representation
-function matrixMultiply( a, b ) {
+function matrixMultiply( a : number[], b : number[]) {
 	var final = [];
 
 	final[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
@@ -191,7 +191,7 @@ function matrixMultiply( a, b ) {
 }
 
 //Returns a 3 x 3 rotation matrix as an array
-function computeMatrix(alpha, beta, gamma, currentScreenOrientation) {
+function computeMatrix(alpha : number | null, beta : number | null, gamma : number | null, currentScreenOrientation : number) {
 	var rotationMatrix = getBaseRotationMatrix(
 	alpha,
 	beta,
@@ -209,9 +209,9 @@ function computeMatrix(alpha, beta, gamma, currentScreenOrientation) {
 	return finalMatrix; // [ m11, m12, m13, m21, m22, m23, m31, m32, m33 ]
 }
 
-function getYawPitchRoll(rotationMatrix) {
-	var rm11 = rotationMatrix[0]; var rm12 = rotationMatrix[1]; var rm13 = rotationMatrix[2];
-	var rm21 = rotationMatrix[3]; var rm22 = rotationMatrix[4]; var rm23 = rotationMatrix[5];
+function getYawPitchRoll(rotationMatrix : number[]) {
+	var rm11 = rotationMatrix[0]; //var rm12 = rotationMatrix[1]; var rm13 = rotationMatrix[2];
+	var rm21 = rotationMatrix[3]; //var rm22 = rotationMatrix[4]; var rm23 = rotationMatrix[5];
 	var rm31 = rotationMatrix[6]; var rm32 = rotationMatrix[7]; var rm33 = rotationMatrix[8];
 	
 	var yaw = Math.atan2(rm21, rm11);
@@ -221,10 +221,10 @@ function getYawPitchRoll(rotationMatrix) {
 	return [yaw, pitch, roll]; //[yaw, pitch, roll]
 }
 
-function onDeviceOrientationChanged(eventData) {
+function onDeviceOrientationChanged(eventData : DeviceOrientationEvent) {
 	var beta = eventData.beta;
 	var gamma = eventData.gamma;
-	var alpha = eventData.alpha; 
+	var alpha = eventData.alpha;
 	
 	var matrix = computeMatrix(alpha, beta, gamma, currentScreenOrientation);
 	
