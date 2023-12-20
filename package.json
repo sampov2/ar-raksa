@@ -1,5 +1,5 @@
 {
-  "name": "cesium-starter",
+  "name": "ar-raksa",
   "version": "1.107.0",
   "description": "",
   "scripts": {
@@ -8,8 +8,8 @@
     "preview": "vite preview"
   },
   "keywords": [],
-  "author": "Yasunori Kirimoto",
-  "license": "ISC",
+  "author": "Sampo Savolainen",
+  "license": "MIT",
   "devDependencies": {
     "typescript": "^5.1.6",
     "vite": "^4.4.1"
