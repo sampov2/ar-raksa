@@ -67,9 +67,13 @@ function flyTo(lat : number, lon : number, altitude : number) {
         })
     });
 }
-
+var flyToN = 0
 navigator.geolocation.watchPosition((pos) => {
-    flyTo(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 20.0)
+    if (flyToN === 0) {
+        flyToN++;
+        
+        flyTo(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 20.0)
+    }
 }, (error) => console.error(error), {
     enableHighAccuracy: true,
     timeout: 5000,
