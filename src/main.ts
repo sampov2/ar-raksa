@@ -51,10 +51,10 @@ Cesium.Cesium3DTileset.fromIonAssetId(2275207, {}).then((tileset) => {
     viewer.scene.primitives.add(tileset);
 });
 
-const flyToDebouncer = debounceFactory();
+const devicePositionDebouncer = debounceFactory();
 
 function flyTo(lat : number, lon : number, altitude : number) {
-    flyToDebouncer.call(() => {
+    devicePositionDebouncer.call('flyTo', () => {
         return new Promise<void>((resolve) => {
             viewer.camera.flyTo({
                 destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
@@ -67,13 +67,8 @@ function flyTo(lat : number, lon : number, altitude : number) {
         })
     });
 }
-var flyToN = 0
 navigator.geolocation.watchPosition((pos) => {
-    if (flyToN === 0) {
-        flyToN++;
-        
-        flyTo(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 20.0)
-    }
+    flyTo(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 20.0)
 }, (error) => console.error(error), {
     enableHighAccuracy: true,
     timeout: 5000,
@@ -230,11 +225,16 @@ function onDeviceOrientationChanged(eventData : DeviceOrientationEvent) {
 	
     var yawPitchRoll = getYawPitchRoll(matrix);
 
-	viewer.camera.setView({
-        orientation : {
-            heading: -yawPitchRoll[0],
-            pitch: yawPitchRoll[1],
-            roll: -yawPitchRoll[2]
-        }
-    });
+    devicePositionDebouncer.call('orientation', () => {
+        return new Promise<void>((resolve) => {
+            viewer.camera.setView({
+                orientation : {
+                    heading: -yawPitchRoll[0],
+                    pitch: yawPitchRoll[1],
+                    roll: -yawPitchRoll[2]
+                }
+            });
+            resolve();
+        });
+    })
 }
