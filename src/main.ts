@@ -23,10 +23,10 @@ wfsUrl.searchParams.append('OUTPUTFORMAT', 'application/json');
 wfsUrl.searchParams.append('COUNT', '2000');
 
 Cesium.GeoJsonDataSource.load(wfsUrl.toString(), {
-    stroke: Cesium.Color.HOTPINK,
-    fill: Cesium.Color.PINK,
+    stroke: new Cesium.Color(1.0, 0.75, 0.8, 0.0),
+    fill: new Cesium.Color(1.0, 0.75, 0.8, 0.5),
     clampToGround: true,
-    strokeWidth: 3,
+    strokeWidth: 0,
     markerSymbol: '?'
 }).then((ds) => {
     ds.entities.values.forEach((entity) => {
@@ -57,7 +57,11 @@ type CurrentView = {
 
 const currentView : CurrentView = {
     destination: null,
-    orientation: null
+    orientation: {
+        heading: 0,
+        pitch: -0.6,
+        roll: 0
+    }
 }
 function setView() {
     if (currentView.destination === null || currentView.orientation === null) return;
