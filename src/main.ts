@@ -58,10 +58,6 @@ function flyTo(lat : number, lon : number, altitude : number) {
         return new Promise<void>((resolve) => {
             viewer.camera.flyTo({
                 destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
-                orientation: {
-                    pitch: -0.6,
-                    roll: 0.0,
-                },
                 complete: resolve
             });
         })
