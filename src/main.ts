@@ -56,11 +56,13 @@ const devicePositionDebouncer = debounceFactory();
 function flyTo(lat : number, lon : number, altitude : number) {
     devicePositionDebouncer.call('flyTo', () => {
         return new Promise<void>((resolve) => {
-            viewer.camera.flyTo({
+            viewer.camera.setView({
                 destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
-                complete: resolve
+                //complete: resolve
             });
+            resolve();
         })
+
     });
 }
 navigator.geolocation.watchPosition((pos) => {
