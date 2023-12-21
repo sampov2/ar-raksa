@@ -130,9 +130,9 @@ function getBaseRotationMatrix( alpha : number | null, beta : number | null, gam
 	var m33 = cX * cY;
 
 	return [
-	m11,    m12,    m13,
-	m21,    m22,    m23,
-	m31,    m32,    m33
+        m11,    m12,    m13,
+        m21,    m22,    m23,
+        m31,    m32,    m33
 	];
 }
 
@@ -145,9 +145,9 @@ function getScreenTransformationMatrix( screenOrientation : number) {
 
 	// Construct our screen transformation matrix
 	var r_s = [
-	cA,    -sA,    0,
-	sA,    cA,     0,
-	0,     0,      1
+        cA,    -sA,    0,
+        sA,    cA,     0,
+        0,     0,      1
 	];
 
 	return r_s;
@@ -162,9 +162,9 @@ function getWorldTransformationMatrix() {
 
 	// Construct our world transformation matrix
 	var r_w = [
-	1,     0,    0,
-	0,     cA,   -sA,
-	0,     sA,   cA
+        1,     0,    0,
+        0,     cA,   -sA,
+        0,     sA,   cA
 	];
 
 	return r_w;
@@ -192,11 +192,7 @@ function matrixMultiply( a : number[], b : number[]) {
 
 //Returns a 3 x 3 rotation matrix as an array
 function computeMatrix(alpha : number | null, beta : number | null, gamma : number | null, currentScreenOrientation : number) {
-	var rotationMatrix = getBaseRotationMatrix(
-	alpha,
-	beta,
-	gamma
-	); // R
+	var rotationMatrix = getBaseRotationMatrix(alpha, beta, gamma); // R
 
 	var screenTransform = getScreenTransformationMatrix( currentScreenOrientation ); // r_s
 
@@ -228,17 +224,13 @@ function onDeviceOrientationChanged(eventData : DeviceOrientationEvent) {
 	
 	var matrix = computeMatrix(alpha, beta, gamma, currentScreenOrientation);
 	
-	
-	var YawPitchRoll = getYawPitchRoll(matrix);
-	
-	
-	
+    var yawPitchRoll = getYawPitchRoll(matrix);
+
 	viewer.camera.setView({
-    orientation : {
-       heading : -YawPitchRoll[0],
-        pitch : YawPitchRoll[1],
-		roll: -YawPitchRoll[2]
-    }
-   });
-	
+        orientation : {
+            heading: -yawPitchRoll[0],
+            pitch: yawPitchRoll[1],
+            roll: -yawPitchRoll[2]
+        }
+    });
 }
