@@ -1,6 +1,7 @@
 import './style.css'
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import * as Cesium from 'cesium';
+import { debounceFactory } from './debounce';
 
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwODU5OWYyYy1jZmY3LTQxMmQtODc0OC02MTJlZThkYWJiYjQiLCJpZCI6MTg1NTIzLCJpYXQiOjE3MDMwNzQ3MTh9.eXHMDBi4AGAHJInMfIGt3AL22k1fQCBXovfhHx4-TQg';
 
@@ -22,6 +23,21 @@ wfsUrl.searchParams.append('SRSNAME', 'EPSG:4326');
 wfsUrl.searchParams.append('OUTPUTFORMAT', 'application/json');
 wfsUrl.searchParams.append('COUNT', '2000');
 
+Cesium.GeoJsonDataSource.load(wfsUrl.toString(), {
+    stroke: Cesium.Color.HOTPINK,
+    fill: Cesium.Color.PINK,
+    clampToGround: true,
+    strokeWidth: 3,
+    markerSymbol: '?'
+}).then((ds) => {
+    ds.entities.values.forEach((entity) => {
+        if (entity.polygon !== undefined) {
+            entity.polygon.extrudedHeight = new Cesium.ConstantProperty(60)
+        }
+    });
+    viewer.dataSources.add(ds);
+});
+
 
 // Helsinki 3D tiles
 /*
@@ -30,45 +46,30 @@ Cesium.Cesium3DTileset.fromUrl('https://kartta.hel.fi/3d/datasource-data/2bcc0c8
 });
 */
 
-
 // Google 3D tiles
 Cesium.Cesium3DTileset.fromIonAssetId(2275207, {}).then((tileset) => {
     viewer.scene.primitives.add(tileset);
 });
 
-
-Cesium.GeoJsonDataSource.load(wfsUrl.toString(), {
-    stroke: Cesium.Color.HOTPINK,
-    fill: Cesium.Color.PINK,
-    clampToGround: true,
-    strokeWidth: 3,
-    markerSymbol: '?'
-  }).then((ds) => {
-    ds.entities.values.forEach((entity) => {
-        if (entity.polygon !== undefined) {
-
-            entity.polygon.extrudedHeight = new Cesium.ConstantProperty(60)
-        }
-        
-        
-    });
-    viewer.dataSources.add(ds);
-  })
+const flyToDebouncer = debounceFactory();
 
 function flyTo(lat : number, lon : number, altitude : number) {
-    viewer.camera.flyTo({
-        //destination: Cesium.Cartesian3.fromDegrees(24.9375, 60.03, 10000.0),
-        destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
-        orientation: {
-            pitch: -0.6,
-            roll: 0.0,
-        },
+    flyToDebouncer.call(() => {
+        return new Promise<void>((resolve) => {
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
+                orientation: {
+                    pitch: -0.6,
+                    roll: 0.0,
+                },
+                complete: resolve
+            });
+        })
     });
 }
 
 navigator.geolocation.watchPosition((pos) => {
     flyTo(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 20.0)
-    console.log(pos.coords)
 }, (error) => console.error(error), {
     enableHighAccuracy: true,
     timeout: 5000,
@@ -83,7 +84,6 @@ if (window.DeviceOrientationEvent) {
 	window.addEventListener('deviceorientation', onDeviceOrientationChanged, false);
 }
 
-	
 /**
 * Rotation Matrix functions
 * Convert Yaw/alpha/Z, Pitch/beta/X, Roll/gamma/Y to and from rotation matrix, apply transformations
