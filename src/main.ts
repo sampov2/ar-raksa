@@ -1,7 +1,6 @@
 import './style.css'
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import * as Cesium from 'cesium';
-import { debounceFactory } from './debounce';
 
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwODU5OWYyYy1jZmY3LTQxMmQtODc0OC02MTJlZThkYWJiYjQiLCJpZCI6MTg1NTIzLCJpYXQiOjE3MDMwNzQ3MTh9.eXHMDBi4AGAHJInMfIGt3AL22k1fQCBXovfhHx4-TQg';
 
@@ -51,20 +50,29 @@ Cesium.Cesium3DTileset.fromIonAssetId(2275207, {}).then((tileset) => {
     viewer.scene.primitives.add(tileset);
 });
 
-const devicePositionDebouncer = debounceFactory();
+type CurrentView = {
+    destination: Cesium.Cartesian3 | null;
+    orientation: Cesium.HeadingPitchRollValues | null;
+};
 
-function flyTo(lat : number, lon : number, altitude : number) {
-    devicePositionDebouncer.call('flyTo', () => {
-        return new Promise<void>((resolve) => {
-            viewer.camera.setView({
-                destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
-                //complete: resolve
-            });
-            resolve();
-        })
+const currentView : CurrentView = {
+    destination: null,
+    orientation: null
+}
+function setView() {
+    if (currentView.destination === null || currentView.orientation === null) return;
 
+    viewer.camera.setView({
+        destination: currentView.destination,
+        orientation: currentView.orientation
     });
 }
+
+function flyTo(lat : number, lon : number, altitude : number) {
+    currentView.destination = Cesium.Cartesian3.fromDegrees(lon, lat, altitude);
+    setView();
+}
+
 navigator.geolocation.watchPosition((pos) => {
     flyTo(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 20.0)
 }, (error) => console.error(error), {
@@ -223,16 +231,10 @@ function onDeviceOrientationChanged(eventData : DeviceOrientationEvent) {
 	
     var yawPitchRoll = getYawPitchRoll(matrix);
 
-    devicePositionDebouncer.call('orientation', () => {
-        return new Promise<void>((resolve) => {
-            viewer.camera.setView({
-                orientation : {
-                    heading: -yawPitchRoll[0],
-                    pitch: yawPitchRoll[1],
-                    roll: -yawPitchRoll[2]
-                }
-            });
-            resolve();
-        });
-    })
+    currentView.orientation = {
+        heading: -yawPitchRoll[0],
+        pitch: yawPitchRoll[1],
+        roll: -yawPitchRoll[2]
+    };
+    setView();
 }
